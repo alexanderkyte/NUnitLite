@@ -23,6 +23,7 @@
 
 using System;
 using NUnit.Framework.Api;
+using System.Reflection;
 
 namespace NUnit.Framework.Internal
 {
@@ -422,10 +423,17 @@ namespace NUnit.Framework.Internal
               SetResult(ResultState.Inconclusive, ex.Message, StackFilter.Filter(ex.StackTrace));
             else if (ex is SuccessException)
               SetResult(ResultState.Success, ex.Message, StackFilter.Filter(ex.StackTrace));
-            else
-                SetResult(ResultState.Error,
+            else {
+              MethodInfo write = null;
+              if (Environment.GetEnvironmentVariable ("MONO_TEST_TELEMETRY") != null)
+                  write = Type.GetType ("Mono.Runtime", false).GetMethod ("WriteStateToDisk", BindingFlags.NonPublic | BindingFlags.Static);
+              if (write != null)
+                  write.Invoke (null, new object [] { ex });
+
+              SetResult(ResultState.Error,
                     ExceptionHelper.BuildMessage(ex),
                     ExceptionHelper.BuildStackTrace(ex));
+            }
         }
 
         #endregion
